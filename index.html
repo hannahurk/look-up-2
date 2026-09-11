@@ -3,50 +3,28 @@
   <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="./style.css">
-    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Silkscreen:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Look Up</title>
   </head>
   <body>
 
-<div class="wrap">
+<div class="oculus is-loading" id="oculus">
+  <img class="oculus-image" id="oculus-image" alt="">
+  <video class="oculus-video" id="oculus-video" muted loop playsinline autoplay></video>
+  <iframe class="oculus-video-frame" id="oculus-video-frame" allow="autoplay; encrypted-media" frameborder="0"></iframe>
+  <div class="oculus-fallback" id="oculus-fallback"><span>&#9737;</span></div>
+</div>
 
-  <div class="oculus is-loading" id="oculus">
-    <img class="oculus-image" id="oculus-image" alt="">
-    <video class="oculus-video" id="oculus-video" muted loop playsinline autoplay></video>
-    <iframe class="oculus-video-frame" id="oculus-video-frame" allow="autoplay; encrypted-media" frameborder="0"></iframe>
-    <div class="oculus-fallback" id="oculus-fallback"><span>&#9737;</span></div>
+<div class="wx-block" id="wx-panel">
+  <span class="wx-label" id="wx-label">Cosmic Meteorology</span>
+  <div class="wx-readout" id="wx-readout">
+    <span class="wx-value" id="wind-speed">&mdash;</span><span class="wx-unit" id="wind-unit">mph solar wind</span><span class="aurora-badge" id="aurora-badge" hidden>&#9733; Aurora Watch</span>
   </div>
-
-  <div class="scrim"></div>
-
-  <div class="content">
-    <div class="head-row">
-      <h1 class="headline i18n" id="headline">HELLO</h1>
-      <div class="clock" id="clock">
-        <span id="clock-time">&mdash;&mdash;:&mdash;&mdash;</span>
-        <span id="clock-date">&mdash;&mdash;&mdash; &mdash;&mdash;</span>
-      </div>
-    </div>
-    <p class="subtitle" id="apod-title">Loading today&rsquo;s sky&hellip;</p>
-    <p class="excerpt" id="apod-excerpt">Pulling the latest image from NASA&rsquo;s Astronomy Picture of the Day API.</p>
-    <div class="credit"><span class="i18n" id="credit-label">Image &amp; text:</span> <strong class="i18n" id="credit-source">NASA Astronomy Picture of the Day</strong> &mdash; apod.nasa.gov</div>
-
-    <div class="wx-block">
-      <span class="wx-label dot-type i18n" id="wx-label">Cosmic Meteorology</span>
-      <div class="wx-readout" id="wx-readout">
-        <span class="wx-value" id="wind-speed">&mdash;</span><span class="wx-unit i18n" id="wind-unit">mph solar wind</span><span class="aurora-badge" id="aurora-badge" hidden>&#9733; Aurora Watch</span>
-      </div>
-      <div class="wx-readout secondary">
-        <span class="wx-value" id="wind-bz">&mdash;</span><span class="wx-unit i18n" id="bz-unit">nT Bz</span>
-      </div>
-      <p class="wx-alert" id="wx-alert">Checking conditions&hellip;</p>
-    </div>
+  <div class="wx-readout secondary">
+    <span class="wx-value" id="wind-bz">&mdash;</span><span class="wx-unit" id="bz-unit">nT Bz</span>
   </div>
-
-  <p class="idle-hint dot-type i18n" id="idle-hint">&middot; movement wakes this sign &middot;</p>
-
+  <p class="wx-alert" id="wx-alert">Checking conditions&hellip;</p>
 </div>
 
     <script src="./script.js"></script>

@@ -1,10 +1,9 @@
-/* Look Up — a ceiling sign for a bus shelter, showing NASA's live sky and
-   space weather data. */
+/* Look Up — a ceiling sign for a bus shelter, showing NASA's Astronomy
+   Picture of the Day full-bleed. */
 
 :root {
   --ink: #14161f;
   --panel: #1b1e2a;
-  --steel: #4b5566;
   --paper: #f4f5f8;
   --slate: #9aa1b4;
   --amber: #f2a93b;
@@ -19,27 +18,7 @@ html, body {
 body {
   margin: 0;
   background: var(--ink);
-  color: var(--paper);
   font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-}
-
-.wrap {
-  position: relative;
-  z-index: 2;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-
-/* ---- English/Spanish slideshow (static chrome text only) ---- */
-
-.i18n {
-  transition: opacity 0.7s ease-in-out;
-}
-
-.i18n.is-swapping {
-  opacity: 0;
 }
 
 /* ---- idle / wake cycle ----
@@ -47,8 +26,7 @@ body {
    for a real PIR or ultrasonic sensor on the physical shelter roof. */
 
 body.is-idle .oculus,
-body.is-idle .scrim,
-body.is-idle .content {
+body.is-idle .wx-block {
   opacity: 0.32;
   filter: saturate(0.55);
   animation: breathe 5s ease-in-out infinite;
@@ -61,106 +39,9 @@ body.is-idle .content {
 
 @media (prefers-reduced-motion: reduce) {
   body.is-idle .oculus,
-  body.is-idle .scrim,
-  body.is-idle .content {
+  body.is-idle .wx-block {
     animation: none;
   }
-}
-
-.idle-hint {
-  position: fixed;
-  z-index: 3;
-  left: 50%;
-  bottom: 28px;
-  transform: translateX(-50%);
-  margin: 0;
-  padding: 6px 18px;
-  border-radius: 999px;
-  background: rgba(20, 22, 31, 0.88);
-  font-size: 12px;
-  color: var(--slate);
-  opacity: 0;
-  transition: opacity 1.2s ease;
-  pointer-events: none;
-}
-
-body.is-idle .idle-hint {
-  opacity: 0.85;
-}
-
-.dot-type {
-  font-family: 'Silkscreen', 'IBM Plex Mono', ui-monospace, monospace;
-  letter-spacing: 0.03em;
-}
-
-/* ---- text overlay ---- */
-
-.scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  transition: opacity 1.2s ease, filter 1.2s ease;
-  background:
-    linear-gradient(100deg, rgba(20, 22, 31, 0.95) 0%, rgba(20, 22, 31, 0.8) 32%, rgba(20, 22, 31, 0.25) 60%, transparent 78%),
-    linear-gradient(0deg, rgba(20, 22, 31, 0.85) 0%, transparent 42%);
-}
-
-.content {
-  position: relative;
-  align-self: flex-start;
-  max-width: 640px;
-  padding: 64px 72px;
-  background: linear-gradient(100deg, rgba(20, 22, 31, 0.94) 0%, rgba(20, 22, 31, 0.9) 75%, rgba(20, 22, 31, 0.78) 100%);
-  transition: opacity 1.2s ease, filter 1.2s ease;
-}
-
-.head-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.headline {
-  font-family: 'Big Shoulders Display', 'IBM Plex Sans', sans-serif;
-  font-weight: 800;
-  font-size: clamp(48px, 6vw, 76px);
-  line-height: 0.95;
-  margin: 0 0 20px;
-  color: var(--paper);
-  text-wrap: balance;
-}
-
-.subtitle {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  letter-spacing: 0.03em;
-  font-size: 16px;
-  color: var(--slate);
-  margin: 0 0 28px;
-  text-transform: uppercase;
-}
-
-.excerpt {
-  font-size: 16px;
-  line-height: 1.65;
-  color: #c7cbd8;
-  max-width: 100%;
-  margin: 0 0 40px;
-}
-
-.credit {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--slate);
-}
-
-.credit strong {
-  color: var(--slate);
-  font-weight: 500;
 }
 
 /* ---- full-bleed backdrop ---- */
@@ -168,7 +49,6 @@ body.is-idle .idle-hint {
 .oculus {
   position: fixed;
   inset: 0;
-  z-index: 0;
   overflow: hidden;
   background: var(--panel);
   transition: opacity 1.2s ease, filter 1.2s ease;
@@ -226,34 +106,18 @@ body.is-idle .idle-hint {
   #oculus.is-loading { animation: none; }
 }
 
-.clock {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  letter-spacing: 0.03em;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: none;
-}
-
-.clock #clock-time {
-  font-size: 26px;
-  color: var(--paper);
-  font-variant-numeric: tabular-nums;
-}
-
-.clock #clock-date {
-  font-size: 14px;
-  color: var(--slate);
-  text-transform: uppercase;
-}
+/* ---- space weather panel ---- */
 
 .wx-block {
-  width: 100%;
-  max-width: 100%;
+  position: fixed;
+  z-index: 2;
+  left: 0;
+  bottom: 0;
+  max-width: 360px;
+  padding: 32px 36px;
+  background: linear-gradient(100deg, rgba(20, 22, 31, 0.94) 0%, rgba(20, 22, 31, 0.82) 100%);
   text-align: left;
-  border-top: 1px dashed rgba(154, 161, 180, 0.3);
-  padding-top: 20px;
+  transition: opacity 1.2s ease, filter 1.2s ease;
 }
 
 .wx-block.is-south .wx-readout:first-child .wx-value { color: var(--amber); }
@@ -272,6 +136,8 @@ body.is-idle .idle-hint {
 
 .wx-label {
   display: block;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  letter-spacing: 0.03em;
   font-size: 13px;
   color: var(--amber);
   text-transform: uppercase;
@@ -314,9 +180,8 @@ body.is-idle .idle-hint {
 .wx-block.has-error .wx-alert { color: #e07a6b; }
 
 @media (max-width: 780px) {
-  .content {
+  .wx-block {
     max-width: 100%;
-    padding: 32px 24px 40px;
-    background: rgba(20, 22, 31, 0.92);
+    padding: 24px 24px 32px;
   }
 }
