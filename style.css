@@ -18,21 +18,18 @@ html, body {
 
 body {
   margin: 0;
-  min-height: 100vh;
   background: var(--ink);
   color: var(--paper);
   font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-  padding: 64px 72px;
 }
 
 .wrap {
-  display: grid;
-  grid-template-columns: minmax(360px, 620px) 1fr;
-  gap: 48px;
-  max-width: 1440px;
-  margin: 0 auto;
-  align-items: center;
-  transition: opacity 1.2s ease, filter 1.2s ease;
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 /* ---- English/Spanish slideshow (static chrome text only) ---- */
@@ -49,7 +46,9 @@ body {
    "Motion" here is simulated with mouse/touch/keyboard activity, standing in
    for a real PIR or ultrasonic sensor on the physical shelter roof. */
 
-body.is-idle .wrap {
+body.is-idle .oculus,
+body.is-idle .scrim,
+body.is-idle .content {
   opacity: 0.32;
   filter: saturate(0.55);
   animation: breathe 5s ease-in-out infinite;
@@ -61,15 +60,23 @@ body.is-idle .wrap {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.is-idle .wrap { animation: none; }
+  body.is-idle .oculus,
+  body.is-idle .scrim,
+  body.is-idle .content {
+    animation: none;
+  }
 }
 
 .idle-hint {
   position: fixed;
+  z-index: 3;
   left: 50%;
   bottom: 28px;
   transform: translateX(-50%);
   margin: 0;
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: rgba(20, 22, 31, 0.88);
   font-size: 12px;
   color: var(--slate);
   opacity: 0;
@@ -86,7 +93,27 @@ body.is-idle .idle-hint {
   letter-spacing: 0.03em;
 }
 
-/* ---- left column ---- */
+/* ---- text overlay ---- */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 1.2s ease, filter 1.2s ease;
+  background:
+    linear-gradient(100deg, rgba(20, 22, 31, 0.95) 0%, rgba(20, 22, 31, 0.8) 32%, rgba(20, 22, 31, 0.25) 60%, transparent 78%),
+    linear-gradient(0deg, rgba(20, 22, 31, 0.85) 0%, transparent 42%);
+}
+
+.content {
+  position: relative;
+  align-self: flex-start;
+  max-width: 640px;
+  padding: 64px 72px;
+  background: linear-gradient(100deg, rgba(20, 22, 31, 0.94) 0%, rgba(20, 22, 31, 0.9) 75%, rgba(20, 22, 31, 0.78) 100%);
+  transition: opacity 1.2s ease, filter 1.2s ease;
+}
 
 .head-row {
   display: flex;
@@ -136,29 +163,15 @@ body.is-idle .idle-hint {
   font-weight: 500;
 }
 
-/* ---- right column ---- */
-
-.col.right {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* ---- full-bleed backdrop ---- */
 
 .oculus {
-  position: relative;
-  width: clamp(260px, 42vw, 640px);
-  height: clamp(260px, 42vw, 640px);
-  flex: none;
-  border-radius: 50%;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
   background: var(--panel);
-}
-
-.oculus::before {
-  content: "";
-  position: absolute;
-  inset: -12px;
-  border-radius: 50%;
-  border: 1px dashed rgba(154, 161, 180, 0.4);
+  transition: opacity 1.2s ease, filter 1.2s ease;
 }
 
 .oculus-image,
@@ -167,7 +180,6 @@ body.is-idle .idle-hint {
 .oculus-fallback {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
   display: none;
 }
 
@@ -178,6 +190,14 @@ body.is-idle .idle-hint {
 }
 
 .oculus-video-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  min-width: 177.78vh; /* keeps a 16:9 embed covering the screen at any aspect ratio */
+  min-height: 56.25vw;
+  transform: translate(-50%, -50%);
   border: none;
   background: var(--panel);
 }
@@ -294,13 +314,9 @@ body.is-idle .idle-hint {
 .wx-block.has-error .wx-alert { color: #e07a6b; }
 
 @media (max-width: 780px) {
-  body { padding: 40px 24px; }
-  .wrap {
-    grid-template-columns: 1fr;
-  }
-  .excerpt { max-width: 60ch; }
-  .oculus {
-    width: clamp(220px, 80vw, 340px);
-    height: clamp(220px, 80vw, 340px);
+  .content {
+    max-width: 100%;
+    padding: 32px 24px 40px;
+    background: rgba(20, 22, 31, 0.92);
   }
 }

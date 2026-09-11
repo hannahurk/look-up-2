@@ -12,7 +12,16 @@
 
 <div class="wrap">
 
-  <div class="col left">
+  <div class="oculus is-loading" id="oculus">
+    <img class="oculus-image" id="oculus-image" alt="">
+    <video class="oculus-video" id="oculus-video" muted loop playsinline autoplay></video>
+    <iframe class="oculus-video-frame" id="oculus-video-frame" allow="autoplay; encrypted-media" frameborder="0"></iframe>
+    <div class="oculus-fallback" id="oculus-fallback"><span>&#9737;</span></div>
+  </div>
+
+  <div class="scrim"></div>
+
+  <div class="content">
     <div class="head-row">
       <h1 class="headline i18n" id="headline">HELLO</h1>
       <div class="clock" id="clock">
@@ -36,18 +45,9 @@
     </div>
   </div>
 
-  <div class="col right">
-    <div class="oculus is-loading" id="oculus">
-      <img class="oculus-image" id="oculus-image" alt="">
-      <video class="oculus-video" id="oculus-video" muted loop playsinline autoplay></video>
-      <iframe class="oculus-video-frame" id="oculus-video-frame" allow="autoplay; encrypted-media" frameborder="0"></iframe>
-      <div class="oculus-fallback" id="oculus-fallback"><span>&#9737;</span></div>
-    </div>
-  </div>
+  <p class="idle-hint dot-type i18n" id="idle-hint">&middot; movement wakes this sign &middot;</p>
 
 </div>
-
-<p class="idle-hint dot-type i18n" id="idle-hint">&middot; movement wakes this sign &middot;</p>
 
     <script src="./script.js"></script>
   </body>
