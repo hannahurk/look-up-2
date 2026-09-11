@@ -247,10 +247,10 @@ function renderEPIC(entry) {
 // swap the listeners below for a real PIR/ultrasonic sensor signal on a
 // physical install. Each time the sign wakes up from idle (not on every
 // twitch while already awake), it cycles to the next screen: APOD photo →
-// space weather → near-Earth objects → EPIC Earth image → back to APOD.
+// space weather → EPIC Earth image → near-Earth objects → back to APOD.
 
 const IDLE_TIMEOUT_MS = 8000;
-const MODE_ORDER = ['apod', 'wx', 'neo', 'epic'];
+const MODE_ORDER = ['apod', 'wx', 'epic', 'neo'];
 let idleTimer;
 let mode = 'apod';
 

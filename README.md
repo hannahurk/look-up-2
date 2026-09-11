@@ -13,7 +13,7 @@ A ceiling sign concept for a bus shelter — the interior roof panel above the b
 ## Features
 
 - **Idle / wake cycle** — the current screen dims to a resting state after a few seconds of no activity, then wakes on movement. Mouse/touch/keyboard activity stands in for a real PIR or ultrasonic motion sensor on a physical installation.
-- **Four-screen cycle** — each time the sign wakes from idle (not on every twitch while already awake), it advances to the next screen: APOD photo → Cosmic Meteorology → near-Earth object → EPIC Earth image → back to APOD.
+- **Four-screen cycle** — each time the sign wakes from idle (not on every twitch while already awake), it advances to the next screen: APOD photo → Cosmic Meteorology → EPIC Earth image → near-Earth object → back to APOD.
 - **Aurora watch badge** — a non-color cue appears alongside the solar wind reading when the interplanetary magnetic field turns southward (more likely to spark visible aurora).
 
 ## Running it
