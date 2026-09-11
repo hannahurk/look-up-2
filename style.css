@@ -23,9 +23,10 @@ body {
 }
 
 /* ---- mode switching ----
-   Exactly one of these four full-bleed layers is visible at a time: the
-   APOD photo/video (.oculus), the weather screen, the NEO screen, or the
-   EPIC Earth image. Each wake-from-idle cycles to the next one (script.js). */
+   Exactly one of these five full-bleed layers is visible at a time: the
+   APOD photo/video (.oculus), the EPIC Earth image, or one of the three
+   data screens (weather, NEO, Mars). Each wake-from-idle cycles to the next
+   one (script.js). */
 
 .oculus,
 .epic-screen,
@@ -37,9 +38,10 @@ body {
   transition: opacity 1.2s ease, filter 1.2s ease;
 }
 
-body:not(.mode-wx):not(.mode-neo):not(.mode-epic) .oculus,
+body:not(.mode-wx):not(.mode-neo):not(.mode-epic):not(.mode-mars) .oculus,
 body.mode-wx .stat-screen#wx-screen,
 body.mode-neo .stat-screen#neo-screen,
+body.mode-mars .stat-screen#mars-screen,
 body.mode-epic .epic-screen {
   opacity: 1;
   pointer-events: auto;
@@ -48,14 +50,15 @@ body.mode-epic .epic-screen {
 /* ---- idle / wake cycle ----
    "Motion" here is simulated with mouse/touch/keyboard activity, standing in
    for a real PIR or ultrasonic sensor on the physical shelter roof. Only the
-   currently-visible screen dims — the other three stay at opacity 0, so an
-   idle non-APOD mode doesn't let the (still opacity-0.32'd) photo ghost
-   through underneath it. */
+   currently-visible screen dims — the others stay at opacity 0, so an idle
+   non-APOD mode doesn't let the (still opacity-0.32'd) photo ghost through
+   underneath it. */
 
-body.is-idle:not(.mode-wx):not(.mode-neo):not(.mode-epic) .oculus,
+body.is-idle:not(.mode-wx):not(.mode-neo):not(.mode-epic):not(.mode-mars) .oculus,
 body.is-idle.mode-epic .epic-screen,
 body.is-idle.mode-wx .stat-screen#wx-screen,
-body.is-idle.mode-neo .stat-screen#neo-screen {
+body.is-idle.mode-neo .stat-screen#neo-screen,
+body.is-idle.mode-mars .stat-screen#mars-screen {
   opacity: 0.32;
   filter: saturate(0.55);
   animation: breathe 5s ease-in-out infinite;
@@ -67,10 +70,11 @@ body.is-idle.mode-neo .stat-screen#neo-screen {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.is-idle:not(.mode-wx):not(.mode-neo):not(.mode-epic) .oculus,
+  body.is-idle:not(.mode-wx):not(.mode-neo):not(.mode-epic):not(.mode-mars) .oculus,
   body.is-idle.mode-epic .epic-screen,
   body.is-idle.mode-wx .stat-screen#wx-screen,
-  body.is-idle.mode-neo .stat-screen#neo-screen {
+  body.is-idle.mode-neo .stat-screen#neo-screen,
+  body.is-idle.mode-mars .stat-screen#mars-screen {
     animation: none;
   }
 }

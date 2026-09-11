@@ -241,16 +241,59 @@ function renderEPIC(entry) {
   img.alt = `Earth, imaged by NASA's EPIC camera on ${datePart}`;
 }
 
+// ---------- Mars weather (InSight lander) ----------
+//
+// InSight's mission ended in December 2022, and this feed appears frozen
+// even earlier than that — it always returns the same handful of sols from
+// October 2020. There's no live Mars weather to show, so this renders
+// InSight's last available reading and says plainly when it's from.
+
+const MARS_URL = `https://api.nasa.gov/insight_weather/?api_key=${API_KEY}&feedtype=json&ver=1.0`;
+const C_TO_F = (c) => (c * 9) / 5 + 32;
+const MS_TO_MPH = 2.23694;
+
+async function loadMars() {
+  try {
+    const res = await fetch(MARS_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    renderMars(data);
+  } catch (err) {
+    console.error('Mars weather fetch failed:', err);
+  }
+}
+
+function renderMars(data) {
+  const sols = data.sol_keys || [];
+  if (sols.length === 0) return;
+
+  const sol = sols[sols.length - 1];
+  const reading = data[sol];
+  const recordedDate = new Date(reading.First_UTC).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+
+  document.getElementById('mars-sol').textContent = sol;
+  document.getElementById('mars-temp').textContent = Math.round(C_TO_F(reading.AT.av));
+  document.getElementById('mars-wind').textContent = (reading.HWS.av * MS_TO_MPH).toFixed(1);
+  document.getElementById('mars-pressure').textContent = Math.round(reading.PRE.av);
+  document.getElementById('mars-alert').textContent =
+    `Recorded ${recordedDate} — InSight's mission ended in 2022; no live Mars weather since.`;
+}
+
 // ---------- idle / wake cycle ----------
 //
 // Simulates the shelter's motion sensor with mouse/touch/keyboard activity —
 // swap the listeners below for a real PIR/ultrasonic sensor signal on a
 // physical install. Each time the sign wakes up from idle (not on every
 // twitch while already awake), it cycles to the next screen: APOD photo →
-// space weather → EPIC Earth image → near-Earth objects → back to APOD.
+// space weather → EPIC Earth image → near-Earth objects → Mars weather →
+// back to APOD.
 
 const IDLE_TIMEOUT_MS = 8000;
-const MODE_ORDER = ['apod', 'wx', 'epic', 'neo'];
+const MODE_ORDER = ['apod', 'wx', 'epic', 'neo', 'mars'];
 let idleTimer;
 let mode = 'apod';
 
@@ -268,7 +311,7 @@ function goIdle() {
 
 function toggleMode() {
   mode = MODE_ORDER[(MODE_ORDER.indexOf(mode) + 1) % MODE_ORDER.length];
-  document.body.classList.remove('mode-wx', 'mode-neo', 'mode-epic');
+  document.body.classList.remove('mode-wx', 'mode-neo', 'mode-epic', 'mode-mars');
   if (mode !== 'apod') document.body.classList.add('mode-' + mode);
 }
 
@@ -286,6 +329,7 @@ loadSpaceWeather();
 loadSolarWind();
 loadNEO();
 loadEPIC();
+loadMars();
 setInterval(loadAPOD, REFRESH_MS);
 setInterval(loadSpaceWeather, REFRESH_MS);
 setInterval(loadSolarWind, WIND_REFRESH_MS);
