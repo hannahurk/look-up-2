@@ -1,0 +1,306 @@
+/* Look Up — a ceiling sign for a bus shelter, showing NASA's live sky and
+   space weather data. */
+
+:root {
+  --ink: #14161f;
+  --panel: #1b1e2a;
+  --steel: #4b5566;
+  --paper: #f4f5f8;
+  --slate: #9aa1b4;
+  --amber: #f2a93b;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  padding: 64px 72px;
+}
+
+.wrap {
+  display: grid;
+  grid-template-columns: minmax(360px, 620px) 1fr;
+  gap: 48px;
+  max-width: 1440px;
+  margin: 0 auto;
+  align-items: center;
+  transition: opacity 1.2s ease, filter 1.2s ease;
+}
+
+/* ---- English/Spanish slideshow (static chrome text only) ---- */
+
+.i18n {
+  transition: opacity 0.7s ease-in-out;
+}
+
+.i18n.is-swapping {
+  opacity: 0;
+}
+
+/* ---- idle / wake cycle ----
+   "Motion" here is simulated with mouse/touch/keyboard activity, standing in
+   for a real PIR or ultrasonic sensor on the physical shelter roof. */
+
+body.is-idle .wrap {
+  opacity: 0.32;
+  filter: saturate(0.55);
+  animation: breathe 5s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.28; }
+  50% { opacity: 0.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.is-idle .wrap { animation: none; }
+}
+
+.idle-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 12px;
+  color: var(--slate);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  pointer-events: none;
+}
+
+body.is-idle .idle-hint {
+  opacity: 0.85;
+}
+
+.dot-type {
+  font-family: 'Silkscreen', 'IBM Plex Mono', ui-monospace, monospace;
+  letter-spacing: 0.03em;
+}
+
+/* ---- left column ---- */
+
+.head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.headline {
+  font-family: 'Big Shoulders Display', 'IBM Plex Sans', sans-serif;
+  font-weight: 800;
+  font-size: clamp(48px, 6vw, 76px);
+  line-height: 0.95;
+  margin: 0 0 20px;
+  color: var(--paper);
+  text-wrap: balance;
+}
+
+.subtitle {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  letter-spacing: 0.03em;
+  font-size: 16px;
+  color: var(--slate);
+  margin: 0 0 28px;
+  text-transform: uppercase;
+}
+
+.excerpt {
+  font-size: 16px;
+  line-height: 1.65;
+  color: #c7cbd8;
+  max-width: 100%;
+  margin: 0 0 40px;
+}
+
+.credit {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+
+.credit strong {
+  color: var(--slate);
+  font-weight: 500;
+}
+
+/* ---- right column ---- */
+
+.col.right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oculus {
+  position: relative;
+  width: clamp(260px, 42vw, 640px);
+  height: clamp(260px, 42vw, 640px);
+  flex: none;
+  border-radius: 50%;
+  background: var(--panel);
+}
+
+.oculus::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 1px dashed rgba(154, 161, 180, 0.4);
+}
+
+.oculus-image,
+.oculus-video,
+.oculus-video-frame,
+.oculus-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: none;
+}
+
+.oculus-image,
+.oculus-video {
+  object-fit: cover;
+  background: var(--panel);
+}
+
+.oculus-video-frame {
+  border: none;
+  background: var(--panel);
+}
+
+.oculus-fallback {
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 40%, #262a3a 0%, var(--panel) 75%);
+  color: var(--slate);
+  font-size: 56px;
+}
+
+#oculus:not(.show-video):not(.show-video-frame):not(.show-fallback) .oculus-image { display: block; }
+#oculus.show-video .oculus-video { display: block; }
+#oculus.show-video-frame .oculus-video-frame { display: block; }
+#oculus.show-fallback .oculus-fallback { display: flex; }
+
+#oculus.is-loading {
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #oculus.is-loading { animation: none; }
+}
+
+.clock {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  letter-spacing: 0.03em;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: none;
+}
+
+.clock #clock-time {
+  font-size: 26px;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+
+.clock #clock-date {
+  font-size: 14px;
+  color: var(--slate);
+  text-transform: uppercase;
+}
+
+.wx-block {
+  width: 100%;
+  max-width: 100%;
+  text-align: left;
+  border-top: 1px dashed rgba(154, 161, 180, 0.3);
+  padding-top: 20px;
+}
+
+.wx-block.is-south .wx-readout:first-child .wx-value { color: var(--amber); }
+
+.aurora-badge {
+  display: inline-block;
+  margin-left: 10px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--amber);
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.wx-label {
+  display: block;
+  font-size: 13px;
+  color: var(--amber);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.wx-readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--paper);
+}
+
+.wx-readout.secondary {
+  font-size: 16px;
+  font-weight: 600;
+  color: #d6d9e2;
+  margin-top: 2px;
+}
+
+.wx-unit {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: var(--slate);
+  text-transform: uppercase;
+}
+
+.wx-alert {
+  margin: 14px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--slate);
+}
+
+.wx-block.has-error .wx-alert { color: #e07a6b; }
+
+@media (max-width: 780px) {
+  body { padding: 40px 24px; }
+  .wrap {
+    grid-template-columns: 1fr;
+  }
+  .excerpt { max-width: 60ch; }
+  .oculus {
+    width: clamp(220px, 80vw, 340px);
+    height: clamp(220px, 80vw, 340px);
+  }
+}
