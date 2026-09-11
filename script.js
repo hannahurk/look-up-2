@@ -97,7 +97,6 @@ function typeFromMessageID(messageID, messageType) {
 }
 
 async function loadSpaceWeather() {
-  const block = document.querySelector('.wx-block');
   const { startDate, endDate } = donkiDateRange(3);
   const url = `https://api.nasa.gov/DONKI/notifications?startDate=${startDate}&endDate=${endDate}&type=all&api_key=${API_KEY}`;
 
@@ -107,16 +106,13 @@ async function loadSpaceWeather() {
     const data = await res.json();
     renderSpaceWeather(data);
   } catch (err) {
-    block.classList.add('has-error');
-    document.getElementById('wx-alert').textContent =
-      "Couldn't reach DONKI. See ccmc.gsfc.nasa.gov/tools/DONKI directly.";
     console.error('DONKI fetch failed:', err);
   }
 }
 
 function renderSpaceWeather(notifications) {
-  const block = document.querySelector('.wx-block');
-  block.classList.remove('has-error');
+  const card = document.getElementById('wx-card');
+  card.classList.remove('has-error');
 
   if (!Array.isArray(notifications) || notifications.length === 0) {
     document.getElementById('wx-alert').textContent = 'All quiet — no alerts in the last 3 days.';
@@ -139,7 +135,6 @@ const WIND_REFRESH_MS = 60 * 1000; // this feed updates about once a minute
 const KM_S_TO_MPH = 2236.94;
 
 async function loadSolarWind() {
-  const block = document.querySelector('.wx-block');
   try {
     const [magRes, speedRes] = await Promise.all([
       fetch('https://services.swpc.noaa.gov/products/summary/solar-wind-mag-field.json'),
@@ -150,7 +145,7 @@ async function loadSolarWind() {
     const [speed] = await speedRes.json();
     renderSolarWind(mag, speed);
   } catch (err) {
-    block.classList.add('has-error');
+    document.getElementById('wx-card').classList.add('has-error');
     document.getElementById('wind-speed').textContent = '—';
     document.getElementById('wind-bz').textContent = '—';
     console.error('Solar wind fetch failed:', err);
@@ -158,8 +153,8 @@ async function loadSolarWind() {
 }
 
 function renderSolarWind(mag, speed) {
-  const block = document.querySelector('.wx-block');
-  block.classList.remove('has-error');
+  const card = document.getElementById('wx-card');
+  card.classList.remove('has-error');
 
   const mph = Math.round(speed.proton_speed * KM_S_TO_MPH);
   document.getElementById('wind-speed').textContent = mph.toLocaleString('en-US');
@@ -167,27 +162,114 @@ function renderSolarWind(mag, speed) {
   const bz = mag.bz_gsm;
   document.getElementById('wind-bz').textContent = (bz > 0 ? '+' : '') + bz;
   const isSouth = bz < -2; // southward field: more likely to spark aurora
-  block.classList.toggle('is-south', isSouth);
+  card.classList.toggle('is-south', isSouth);
   document.getElementById('aurora-badge').hidden = !isSouth;
+}
+
+// ---------- Near-Earth objects (NeoWs feed) ----------
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function loadNEO() {
+  const today = todayISO();
+  const url = `https://api.nasa.gov/neo/rest/v1/feed?start_date=${today}&end_date=${today}&api_key=${API_KEY}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    renderNEO(data);
+  } catch (err) {
+    console.error('NEO fetch failed:', err);
+  }
+}
+
+function renderNEO(data) {
+  const card = document.getElementById('neo-card');
+  card.classList.remove('has-error');
+
+  const objects = Object.values(data.near_earth_objects || {}).flat();
+  if (objects.length === 0) {
+    document.getElementById('neo-alert').textContent = 'No tracked close approaches today.';
+    return;
+  }
+
+  const closest = objects.reduce((closestSoFar, obj) => {
+    const dist = parseFloat(obj.close_approach_data[0].miss_distance.lunar);
+    return dist < closestSoFar.dist ? { obj, dist } : closestSoFar;
+  }, { obj: null, dist: Infinity }).obj;
+
+  const approach = closest.close_approach_data[0];
+  const diameter = closest.estimated_diameter.meters;
+  const avgDiameter = Math.round((diameter.estimated_diameter_min + diameter.estimated_diameter_max) / 2);
+  const mph = Math.round(parseFloat(approach.relative_velocity.miles_per_hour));
+  const lunar = parseFloat(approach.miss_distance.lunar).toFixed(1);
+
+  document.getElementById('neo-name').textContent = closest.name;
+  document.getElementById('neo-distance').textContent = lunar;
+  document.getElementById('neo-diameter').textContent = avgDiameter.toLocaleString('en-US');
+  document.getElementById('neo-speed').textContent = mph.toLocaleString('en-US');
+  document.getElementById('neo-hazard-badge').hidden = !closest.is_potentially_hazardous_asteroid;
+  document.getElementById('neo-alert').textContent = `${objects.length} tracked today`;
+}
+
+// ---------- EPIC (Earth Polychromatic Imaging Camera) ----------
+//
+// EPIC's own API host, not proxied through api.nasa.gov — no key needed.
+
+const EPIC_URL = 'https://epic.gsfc.nasa.gov/api/natural';
+
+async function loadEPIC() {
+  try {
+    const res = await fetch(EPIC_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) throw new Error('No EPIC images available');
+    renderEPIC(data[data.length - 1]);
+  } catch (err) {
+    console.error('EPIC fetch failed:', err);
+  }
+}
+
+function renderEPIC(entry) {
+  const [datePart] = entry.date.split(' ');
+  const [year, month, day] = datePart.split('-');
+  const img = document.getElementById('epic-image');
+  img.src = `https://epic.gsfc.nasa.gov/archive/natural/${year}/${month}/${day}/jpg/${entry.image}.jpg`;
+  img.alt = `Earth, imaged by NASA's EPIC camera on ${datePart}`;
 }
 
 // ---------- idle / wake cycle ----------
 //
 // Simulates the shelter's motion sensor with mouse/touch/keyboard activity —
 // swap the listeners below for a real PIR/ultrasonic sensor signal on a
-// physical install.
+// physical install. Each time the sign wakes up from idle (not on every
+// twitch while already awake), it cycles to the next screen: APOD photo →
+// space weather → near-Earth objects → EPIC Earth image → back to APOD.
 
 const IDLE_TIMEOUT_MS = 8000;
+const MODE_ORDER = ['apod', 'wx', 'neo', 'epic'];
 let idleTimer;
+let mode = 'apod';
 
 function wake() {
+  const wasIdle = document.body.classList.contains('is-idle');
   document.body.classList.remove('is-idle');
   clearTimeout(idleTimer);
   idleTimer = setTimeout(goIdle, IDLE_TIMEOUT_MS);
+  if (wasIdle) toggleMode();
 }
 
 function goIdle() {
   document.body.classList.add('is-idle');
+}
+
+function toggleMode() {
+  mode = MODE_ORDER[(MODE_ORDER.indexOf(mode) + 1) % MODE_ORDER.length];
+  document.body.classList.remove('mode-wx', 'mode-neo', 'mode-epic');
+  if (mode !== 'apod') document.body.classList.add('mode-' + mode);
 }
 
 function startIdleCycle() {
@@ -202,7 +284,11 @@ function startIdleCycle() {
 loadAPOD();
 loadSpaceWeather();
 loadSolarWind();
+loadNEO();
+loadEPIC();
 setInterval(loadAPOD, REFRESH_MS);
 setInterval(loadSpaceWeather, REFRESH_MS);
 setInterval(loadSolarWind, WIND_REFRESH_MS);
+setInterval(loadNEO, REFRESH_MS);
+setInterval(loadEPIC, REFRESH_MS);
 startIdleCycle();

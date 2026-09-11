@@ -1,5 +1,6 @@
-/* Look Up — a ceiling sign for a bus shelter, showing NASA's Astronomy
-   Picture of the Day full-bleed. */
+/* Look Up — a ceiling sign for a bus shelter, cycling through NASA's
+   Astronomy Picture of the Day, space weather, near-Earth objects, and a
+   live Earth image, full-bleed. */
 
 :root {
   --ink: #14161f;
@@ -21,12 +22,40 @@ body {
   font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
+/* ---- mode switching ----
+   Exactly one of these four full-bleed layers is visible at a time: the
+   APOD photo/video (.oculus), the weather screen, the NEO screen, or the
+   EPIC Earth image. Each wake-from-idle cycles to the next one (script.js). */
+
+.oculus,
+.epic-screen,
+.stat-screen {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease, filter 1.2s ease;
+}
+
+body:not(.mode-wx):not(.mode-neo):not(.mode-epic) .oculus,
+body.mode-wx .stat-screen#wx-screen,
+body.mode-neo .stat-screen#neo-screen,
+body.mode-epic .epic-screen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* ---- idle / wake cycle ----
    "Motion" here is simulated with mouse/touch/keyboard activity, standing in
-   for a real PIR or ultrasonic sensor on the physical shelter roof. */
+   for a real PIR or ultrasonic sensor on the physical shelter roof. Only the
+   currently-visible screen dims — the other three stay at opacity 0, so an
+   idle non-APOD mode doesn't let the (still opacity-0.32'd) photo ghost
+   through underneath it. */
 
-body.is-idle .oculus,
-body.is-idle .wx-block {
+body.is-idle:not(.mode-wx):not(.mode-neo):not(.mode-epic) .oculus,
+body.is-idle.mode-epic .epic-screen,
+body.is-idle.mode-wx .stat-screen#wx-screen,
+body.is-idle.mode-neo .stat-screen#neo-screen {
   opacity: 0.32;
   filter: saturate(0.55);
   animation: breathe 5s ease-in-out infinite;
@@ -38,20 +67,19 @@ body.is-idle .wx-block {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.is-idle .oculus,
-  body.is-idle .wx-block {
+  body.is-idle:not(.mode-wx):not(.mode-neo):not(.mode-epic) .oculus,
+  body.is-idle.mode-epic .epic-screen,
+  body.is-idle.mode-wx .stat-screen#wx-screen,
+  body.is-idle.mode-neo .stat-screen#neo-screen {
     animation: none;
   }
 }
 
-/* ---- full-bleed backdrop ---- */
+/* ---- APOD photo/video backdrop ---- */
 
 .oculus {
-  position: fixed;
-  inset: 0;
   overflow: hidden;
   background: var(--panel);
-  transition: opacity 1.2s ease, filter 1.2s ease;
 }
 
 .oculus-image,
@@ -106,82 +134,117 @@ body.is-idle .wx-block {
   #oculus.is-loading { animation: none; }
 }
 
-/* ---- space weather panel ---- */
+/* ---- EPIC Earth image backdrop ---- */
 
-.wx-block {
-  position: fixed;
-  z-index: 2;
-  left: 0;
-  bottom: 0;
-  max-width: 360px;
-  padding: 32px 36px;
-  background: linear-gradient(100deg, rgba(20, 22, 31, 0.94) 0%, rgba(20, 22, 31, 0.82) 100%);
-  text-align: left;
-  transition: opacity 1.2s ease, filter 1.2s ease;
+.epic-screen {
+  overflow: hidden;
+  background: var(--panel);
 }
 
-.wx-block.is-south .wx-readout:first-child .wx-value { color: var(--amber); }
-
-.aurora-badge {
-  display: inline-block;
-  margin-left: 10px;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  color: var(--amber);
-  text-transform: uppercase;
-  vertical-align: middle;
+.epic-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: var(--panel);
 }
 
-.wx-label {
+/* ---- data screens (weather, NEO) ----
+   A dark starfield with big centered stats, shared by both. */
+
+.stat-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background-color: var(--ink);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Ccircle cx='18' cy='28' r='1' fill='white' opacity='0.8'/%3E%3Ccircle cx='96' cy='84' r='1.4' fill='white' opacity='0.5'/%3E%3Ccircle cx='168' cy='44' r='0.8' fill='white' opacity='0.7'/%3E%3Ccircle cx='64' cy='168' r='1' fill='white' opacity='0.6'/%3E%3Ccircle cx='204' cy='196' r='1.6' fill='white' opacity='0.9'/%3E%3Ccircle cx='34' cy='124' r='0.7' fill='white' opacity='0.4'/%3E%3Ccircle cx='128' cy='16' r='1' fill='white' opacity='0.5'/%3E%3Ccircle cx='216' cy='116' r='0.9' fill='white' opacity='0.6'/%3E%3Ccircle cx='150' cy='150' r='0.6' fill='white' opacity='0.35'/%3E%3Ccircle cx='8' cy='200' r='1.1' fill='white' opacity='0.55'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+.stat-card {
+  max-width: 640px;
+  text-align: center;
+  color: var(--paper);
+}
+
+.stat-label {
   display: block;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   letter-spacing: 0.03em;
   font-size: 13px;
   color: var(--amber);
   text-transform: uppercase;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
-.wx-readout {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-start;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 22px;
+.stat-name {
+  font-weight: 600;
+  font-size: clamp(22px, 3.4vw, 32px);
+  margin: 0 0 28px;
   color: var(--paper);
 }
 
-.wx-readout.secondary {
-  font-size: 16px;
-  font-weight: 600;
-  color: #d6d9e2;
-  margin-top: 2px;
+.stat-metric {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: clamp(44px, 8vw, 84px);
+  line-height: 1;
+  color: var(--paper);
 }
 
-.wx-unit {
+.stat-metric.secondary {
+  font-size: clamp(18px, 2.4vw, 24px);
+  font-weight: 600;
+  color: #d6d9e2;
+  margin-top: 14px;
+}
+
+.stat-unit {
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.05em;
   color: var(--slate);
   text-transform: uppercase;
 }
 
-.wx-alert {
-  margin: 14px 0 0;
+.stat-badge {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.stat-badge.aurora {
+  background: rgba(242, 169, 59, 0.16);
+  color: var(--amber);
+}
+
+.stat-badge.hazard {
+  background: rgba(224, 122, 107, 0.16);
+  color: #e07a6b;
+}
+
+.stat-alert {
+  margin: 20px 0 0;
   font-size: 14px;
   line-height: 1.5;
   color: var(--slate);
 }
 
-.wx-block.has-error .wx-alert { color: #e07a6b; }
+.stat-card.has-error .stat-alert { color: #e07a6b; }
+
+#wx-card.is-south .stat-metric:first-child .stat-value { color: var(--amber); }
 
 @media (max-width: 780px) {
-  .wx-block {
-    max-width: 100%;
-    padding: 24px 24px 32px;
-  }
+  .stat-card { max-width: 100%; }
 }

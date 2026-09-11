@@ -16,15 +16,40 @@
   <div class="oculus-fallback" id="oculus-fallback"><span>&#9737;</span></div>
 </div>
 
-<div class="wx-block" id="wx-panel">
-  <span class="wx-label" id="wx-label">Cosmic Meteorology</span>
-  <div class="wx-readout" id="wx-readout">
-    <span class="wx-value" id="wind-speed">&mdash;</span><span class="wx-unit" id="wind-unit">mph solar wind</span><span class="aurora-badge" id="aurora-badge" hidden>&#9733; Aurora Watch</span>
+<div class="epic-screen" id="epic-screen">
+  <img class="epic-image" id="epic-image" alt="">
+</div>
+
+<div class="stat-screen" id="wx-screen">
+  <div class="stat-card" id="wx-card">
+    <span class="stat-label">Cosmic Meteorology</span>
+    <div class="stat-metric">
+      <span class="stat-value" id="wind-speed">&mdash;</span><span class="stat-unit" id="wind-unit">mph solar wind</span>
+    </div>
+    <div class="stat-metric secondary">
+      <span class="stat-value" id="wind-bz">&mdash;</span><span class="stat-unit" id="bz-unit">nT Bz</span>
+    </div>
+    <span class="stat-badge aurora" id="aurora-badge" hidden>&#9733; Aurora Watch</span>
+    <p class="stat-alert" id="wx-alert">Checking conditions&hellip;</p>
   </div>
-  <div class="wx-readout secondary">
-    <span class="wx-value" id="wind-bz">&mdash;</span><span class="wx-unit" id="bz-unit">nT Bz</span>
+</div>
+
+<div class="stat-screen" id="neo-screen">
+  <div class="stat-card" id="neo-card">
+    <span class="stat-label">Near-Earth Object &mdash; Closest Approach Today</span>
+    <h2 class="stat-name" id="neo-name">&mdash;</h2>
+    <div class="stat-metric">
+      <span class="stat-value" id="neo-distance">&mdash;</span><span class="stat-unit">lunar distances</span>
+    </div>
+    <div class="stat-metric secondary">
+      <span class="stat-value" id="neo-diameter">&mdash;</span><span class="stat-unit">meters wide</span>
+    </div>
+    <div class="stat-metric secondary">
+      <span class="stat-value" id="neo-speed">&mdash;</span><span class="stat-unit">mph</span>
+    </div>
+    <span class="stat-badge hazard" id="neo-hazard-badge" hidden>&#9888; Potentially Hazardous</span>
+    <p class="stat-alert" id="neo-alert">Checking today&rsquo;s close approaches&hellip;</p>
   </div>
-  <p class="wx-alert" id="wx-alert">Checking conditions&hellip;</p>
 </div>
 
     <script src="./script.js"></script>
