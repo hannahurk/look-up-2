@@ -1,30 +1,45 @@
-# Look Up
+# Space, Translated
 
-A ceiling sign concept for a bus shelter — the interior roof panel above the bench cycles through five full-bleed screens: NASA's Astronomy Picture of the Day, a space weather readout, a live Earth image, near-Earth object data, and Mars weather.
+A full-screen generative artwork, rendered on the HTML Canvas, that translates live NASA space-weather and near-Earth-object data into slow, ambient motion — not a dashboard, not a literal solar-system diagram.
 
-## Live data
+## What's driving it
 
-- **Sky image / video** — [NASA's Astronomy Picture of the Day API](https://api.nasa.gov), refreshed hourly so an always-on kiosk rolls to the new day. Handles all three media types NASA returns: still images, hosted video files, and YouTube-embedded videos.
-- **Space weather alert** — [NASA DONKI](https://ccmc.gsfc.nasa.gov/tools/DONKI/), refreshed hourly.
-- **Solar wind speed & Bz** — [NOAA SWPC](https://www.swpc.noaa.gov/), no API key required, refreshed every minute.
-- **Earth image** — [NASA's EPIC API](https://epic.gsfc.nasa.gov/) (its own host, no key needed), the most recent full-disk image of Earth from the DSCOVR satellite, refreshed hourly.
-- **Near-Earth objects** — [NASA's NeoWs feed](https://api.nasa.gov), today's closest tracked asteroid approach: name, size, speed, miss distance (in lunar distances), and a hazard flag.
-- **Mars weather** — [NASA's InSight weather API](https://api.nasa.gov). InSight's mission ended in December 2022, and this feed has been returning the same frozen October 2020 sols for a while now — there's no live Mars weather to show, so this screen displays InSight's last available reading and says plainly when it's from, rather than presenting stale data as current.
+A Vercel serverless function (`api/nasa-data.js`) is the only thing that talks to NASA. It holds the real API key server-side (`process.env.NASA_API_KEY`, never sent to the browser), requests four endpoints in parallel with `Promise.allSettled` so one failure doesn't block the rest, and returns a small normalized payload:
 
-## Features
+- [`neo/rest/v1/feed`](https://api.nasa.gov) — today's near-Earth objects
+- [`DONKI/FLR`](https://api.nasa.gov) — solar flares, trailing ~7 days
+- [`DONKI/CME`](https://api.nasa.gov) — coronal mass ejections, trailing ~7 days
+- [`DONKI/GST`](https://api.nasa.gov) — geomagnetic storms, trailing ~7 days
 
-- **Idle / wake cycle** — the current screen dims to a resting state after a few seconds of no activity, then wakes on movement. Mouse/touch/keyboard activity stands in for a real PIR or ultrasonic motion sensor on a physical installation.
-- **Five-screen cycle** — each time the sign wakes from idle (not on every twitch while already awake), it advances to the next screen: APOD photo → Cosmic Meteorology → EPIC Earth image → near-Earth object → Mars weather → back to APOD.
-- **Aurora watch badge** — a non-color cue appears alongside the solar wind reading when the interplanetary magnetic field turns southward (more likely to spark visible aurora).
+The browser (`app.js`) fetches `/api/nasa-data`, never NASA directly, and re-fetches every 10 minutes.
 
-## Running it
+## How the data reads as motion
 
-This is a plain static site — no build step. Open `index.html` directly, or serve the folder with anything static (`python3 -m http.server`, GitHub Pages, Vercel, etc.).
+- **Solar-flare intensity** (peak flare class × magnitude in the window) sets the atmospheric core's brightness and radius.
+- **CME speed** (average, km/s) sets particle velocity and trail length.
+- **Geomagnetic intensity** (max Kp / 9) sets turbulence in the flow field the particles and ribbons follow.
+- **Number of space-weather events** (flares + CMEs, plus a bump for any storm) sets particle density.
+- **Each tracked asteroid** becomes one orbiting body.
+  - Diameter → body size
+  - Velocity → orbital speed
+  - Miss distance → orbital radius
+- **Potentially hazardous asteroids**, and generally elevated conditions (an X-class flare or Kp ≥ 5), bring in a restrained amber tint — never a saturated warning color.
 
-Before leaving it running long-term, swap the placeholder `DEMO_KEY` in `script.js` for your own free key from [api.nasa.gov](https://api.nasa.gov) — the shared demo key is capped at 30 requests/hour. (EPIC doesn't use this key at all — it's fetched from its own host.)
+Displayed values ease toward the latest fetched numbers rather than snapping, so a data refresh never looks abrupt.
+
+## If NASA is unreachable
+
+The scene keeps running on whatever it last had (or a quiet neutral default on first load) — it never blocks on the network or shows an error state. The only indicator is a single small dot in the bottom-right corner: dim gray when no source is live, soft teal when at least one is. There are no numeric displays or panels.
 
 ## Files
 
-- `index.html` — markup for all five screens
-- `style.css` — full-bleed backdrop styling, the shared weather/NEO/Mars "stat screen" layout, and the mode-switching + idle/wake transitions
-- `script.js` — fetches and renders APOD, space weather, EPIC, NEO, and Mars weather data, and runs the idle/wake cycle (including the five-way screen rotation)
+- `index.html` — the canvas element, the grain overlay, and the status dot
+- `style.css` — full-viewport layout, the CSS/SVG grain texture, and status-dot styling
+- `app.js` — the generative art engine: starfield, atmospheric core, flowing ribbons, fine particle streams, orbital paths and bodies, and the data-fetch/fallback logic
+- `api/nasa-data.js` — the Vercel serverless function that fetches and normalizes the NASA data
+
+No React, TypeScript, build tooling, or npm packages — plain HTML/CSS/JS, deployed as-is.
+
+## Setup
+
+Set `NASA_API_KEY` in the Vercel project's environment variables (Project Settings → Environment Variables) to your own key from [api.nasa.gov](https://api.nasa.gov). It's read only inside `api/nasa-data.js`; nothing in the repo needs to contain it.

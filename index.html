@@ -2,72 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="./style.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Look Up</title>
+    <title>Space, Translated</title>
+    <link rel="stylesheet" href="./style.css">
   </head>
   <body>
 
-<div class="oculus is-loading" id="oculus">
-  <img class="oculus-image" id="oculus-image" alt="">
-  <video class="oculus-video" id="oculus-video" muted loop playsinline autoplay></video>
-  <iframe class="oculus-video-frame" id="oculus-video-frame" allow="autoplay; encrypted-media" frameborder="0"></iframe>
-  <div class="oculus-fallback" id="oculus-fallback"><span>&#9737;</span></div>
-</div>
+    <canvas id="art"></canvas>
+    <div class="grain" aria-hidden="true"></div>
 
-<div class="epic-screen" id="epic-screen">
-  <img class="epic-image" id="epic-image" alt="">
-</div>
+    <div class="status" id="status" role="status" aria-live="polite">
+      <span class="status-dot" id="status-dot"></span>
+      <span class="visually-hidden" id="status-text">Connecting to live data&hellip;</span>
+    </div>
 
-<div class="stat-screen" id="wx-screen">
-  <div class="stat-card" id="wx-card">
-    <span class="stat-label">Cosmic Meteorology</span>
-    <div class="stat-metric">
-      <span class="stat-value" id="wind-speed">&mdash;</span><span class="stat-unit" id="wind-unit">mph solar wind</span>
-    </div>
-    <div class="stat-metric secondary">
-      <span class="stat-value" id="wind-bz">&mdash;</span><span class="stat-unit" id="bz-unit">nT Bz</span>
-    </div>
-    <span class="stat-badge aurora" id="aurora-badge" hidden>&#9733; Aurora Watch</span>
-    <p class="stat-alert" id="wx-alert">Checking conditions&hellip;</p>
-  </div>
-</div>
-
-<div class="stat-screen" id="neo-screen">
-  <div class="stat-card" id="neo-card">
-    <span class="stat-label">Near-Earth Object &mdash; Closest Approach Today</span>
-    <h2 class="stat-name" id="neo-name">&mdash;</h2>
-    <div class="stat-metric">
-      <span class="stat-value" id="neo-distance">&mdash;</span><span class="stat-unit">lunar distances</span>
-    </div>
-    <div class="stat-metric secondary">
-      <span class="stat-value" id="neo-diameter">&mdash;</span><span class="stat-unit">meters wide</span>
-    </div>
-    <div class="stat-metric secondary">
-      <span class="stat-value" id="neo-speed">&mdash;</span><span class="stat-unit">mph</span>
-    </div>
-    <span class="stat-badge hazard" id="neo-hazard-badge" hidden>&#9888; Potentially Hazardous</span>
-    <p class="stat-alert" id="neo-alert">Checking today&rsquo;s close approaches&hellip;</p>
-  </div>
-</div>
-
-<div class="stat-screen" id="mars-screen">
-  <div class="stat-card" id="mars-card">
-    <span class="stat-label">Mars Weather &mdash; InSight, Sol <span id="mars-sol">&mdash;</span></span>
-    <div class="stat-metric">
-      <span class="stat-value" id="mars-temp">&mdash;</span><span class="stat-unit">&deg;F avg</span>
-    </div>
-    <div class="stat-metric secondary">
-      <span class="stat-value" id="mars-wind">&mdash;</span><span class="stat-unit">mph wind</span>
-    </div>
-    <div class="stat-metric secondary">
-      <span class="stat-value" id="mars-pressure">&mdash;</span><span class="stat-unit">pa pressure</span>
-    </div>
-    <p class="stat-alert" id="mars-alert">Loading Mars weather&hellip;</p>
-  </div>
-</div>
-
-    <script src="./script.js"></script>
+    <script src="./app.js"></script>
   </body>
 </html>
