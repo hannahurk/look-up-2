@@ -449,9 +449,9 @@
       ctx.beginPath();
       ctx.arc(0, 0, orbit.radius, 0, Math.PI * 2);
       ctx.strokeStyle = orbit.hazardous && elevated
-        ? rgba(palette.amber, 0.12)
-        : rgba(palette.star, 0.06);
-      ctx.lineWidth = 1;
+        ? rgba(palette.amber, 0.16)
+        : rgba(palette.star, 0.09);
+      ctx.lineWidth = 1.8;
       ctx.stroke();
       ctx.restore();
     }
@@ -504,7 +504,7 @@
       const f = i / n;
       ctx.beginPath();
       ctx.strokeStyle = rgba(color, f * f * 0.32);
-      ctx.lineWidth = 0.6 + f * 1.1;
+      ctx.lineWidth = 1 + f * 1.8;
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
       ctx.stroke();
@@ -537,7 +537,7 @@
     gradient.addColorStop(0, rgba(color, 0));
     gradient.addColorStop(1, rgba(color, alpha * 0.75));
     ctx.strokeStyle = gradient;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.6;
     ctx.beginPath();
     ctx.moveTo(tailX, tailY);
     ctx.lineTo(p.x, p.y);
@@ -545,7 +545,7 @@
 
     ctx.beginPath();
     ctx.fillStyle = rgba(color, alpha);
-    ctx.arc(p.x, p.y, 1, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2);
     ctx.fill();
   }
 
