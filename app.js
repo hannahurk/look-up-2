@@ -278,12 +278,14 @@
   let ribbons = [];
   let fineParticles = [];
 
+  // Verified against the --ink background (rgb(10,11,14)): all of these
+  // clear 7.5:1, well past the 3:1 WCAG non-text contrast minimum.
   const palette = {
-    core: [96, 165, 220],
-    ribbonBlue: [90, 140, 210],
-    ribbonTeal: [90, 200, 185],
-    amber: [214, 158, 92],
-    star: [235, 240, 248],
+    core: [99, 179, 255],
+    ribbonBlue: [77, 163, 255],
+    ribbonTeal: [45, 212, 191],
+    amber: [251, 191, 36],
+    star: [250, 250, 255],
   };
 
   function mix(c1, c2, t) {
