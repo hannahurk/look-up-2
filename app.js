@@ -195,9 +195,18 @@
   }
 
   function makeFineParticle() {
+    // A shooting star: a fixed diagonal heading, not the curling flow field
+    // the ribbons use — a brief straight streak with a bright head and a
+    // fading tail, entering from an edge.
+    const angle = Math.PI * 0.15 + (Math.random() - 0.5) * 0.4;
+    const fromLeft = Math.random() < 0.5;
     return {
-      points: [{ x: Math.random() * width, y: Math.random() * height }],
-      maxPoints: 6 + Math.floor(Math.random() * 6),
+      x: fromLeft ? -20 - Math.random() * width * 0.3 : Math.random() * width,
+      y: fromLeft ? Math.random() * height * 0.6 : -20 - Math.random() * height * 0.3,
+      angle,
+      length: 16 + Math.random() * 18,
+      life: 0,
+      maxLife: 45 + Math.random() * 35,
     };
   }
 
@@ -344,19 +353,42 @@
     }
   }
 
-  function drawFineParticle(p) {
-    const n = p.points.length;
-    for (let i = 1; i < n; i++) {
-      const a = p.points[i - 1];
-      const b = p.points[i];
-      const f = i / n;
-      ctx.beginPath();
-      ctx.strokeStyle = rgba(palette.ribbonTeal, f * 0.2);
-      ctx.lineWidth = 0.6;
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-    }
+  function stepFineParticle(p, speed) {
+    p.x += Math.cos(p.angle) * speed;
+    p.y += Math.sin(p.angle) * speed;
+    p.life++;
+    return (
+      p.life > p.maxLife || p.x < -60 || p.x > width + 60 || p.y < -60 || p.y > height + 60
+    );
+  }
+
+  function drawFineParticle(p, elevated) {
+    const lifeFrac = p.life / p.maxLife;
+    const fadeIn = Math.min(lifeFrac / 0.12, 1);
+    const fadeOut = 1 - Math.max((lifeFrac - 0.75) / 0.25, 0);
+    const alpha = Math.min(fadeIn, fadeOut);
+    if (alpha <= 0) return;
+
+    const dx = Math.cos(p.angle);
+    const dy = Math.sin(p.angle);
+    const tailX = p.x - dx * p.length;
+    const tailY = p.y - dy * p.length;
+    const color = elevated ? mix(palette.star, palette.amber, 0.3) : palette.star;
+
+    const gradient = ctx.createLinearGradient(tailX, tailY, p.x, p.y);
+    gradient.addColorStop(0, rgba(color, 0));
+    gradient.addColorStop(1, rgba(color, alpha * 0.75));
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tailX, tailY);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.fillStyle = rgba(color, alpha);
+    ctx.arc(p.x, p.y, 1, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   function drawParticles(t, elevated) {
@@ -370,14 +402,14 @@
       if (dead) ribbons[i] = makeRibbon();
     }
 
-    const targetFine = Math.round(clamp(shown.eventDensity || 0, 0, 50));
+    const targetFine = Math.round(clamp(shown.eventDensity || 0, 0, 16));
     while (fineParticles.length < targetFine) fineParticles.push(makeFineParticle());
     while (fineParticles.length > targetFine) fineParticles.pop();
 
     for (let i = fineParticles.length - 1; i >= 0; i--) {
       const p = fineParticles[i];
-      const dead = stepTrail(p, t * 1.2, 1.6 * speedScale, turbulence * 1.4);
-      drawFineParticle(p);
+      const dead = stepFineParticle(p, 2.4 * speedScale);
+      drawFineParticle(p, elevated);
       if (dead) fineParticles[i] = makeFineParticle();
     }
   }
@@ -398,7 +430,7 @@
     shown.geomagneticIntensity = lerp(shown.geomagneticIntensity, latestData.spaceWeather.geomagneticIntensity, 0.01);
     const eventDensityTarget =
       latestData.spaceWeather.flareCount + latestData.spaceWeather.cmeCount + (latestData.spaceWeather.kpIndex > 0 ? 6 : 0);
-    shown.eventDensity = lerp(shown.eventDensity || 0, mapRange(eventDensityTarget, 0, 30, 4, 60), 0.01);
+    shown.eventDensity = lerp(shown.eventDensity || 0, mapRange(eventDensityTarget, 0, 30, 1, 16), 0.01);
 
     const elevated =
       latestData.spaceWeather.flareIntensity >= 1000 || latestData.spaceWeather.kpIndex >= 5;
