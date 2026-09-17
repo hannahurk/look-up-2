@@ -1,12 +1,18 @@
-// Space, Translated — a generative reading of live NASA space-weather and
-// near-Earth-object data. All motion is driven by real measurements fetched
-// from /api/nasa-data (a serverless proxy that holds the actual NASA key);
-// this file never sees or requests a NASA key itself.
+// Space, Translated — a ceiling sign cycling through NASA's Astronomy
+// Picture of the Day, space weather, a live Earth image, Mars weather, and
+// a generative canvas reading of the same live data ("Algorithm Art").
+//
+// /api/nasa-data (a serverless proxy holding the real NASA key) supplies
+// APOD, space weather, near-Earth objects, and Mars weather. EPIC and NOAA
+// solar wind need no key, so this file fetches those two directly. This
+// file never sees or requests a NASA key itself.
 
 (function () {
   'use strict';
 
-  const REFRESH_MS = 10 * 60 * 1000;
+  const REFRESH_MS = 60 * 60 * 1000; // APOD/EPIC/space-weather/Mars roll over slowly
+  const WIND_REFRESH_MS = 60 * 1000; // NOAA solar wind updates about once a minute
+  const KM_S_TO_MPH = 2236.94;
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const canvas = document.getElementById('art');
@@ -72,19 +78,179 @@
     );
   }
 
-  // ---------- data ----------
+  // ---------- APOD (image/video backdrop) ----------
+
+  function youtubeEmbedUrl(url) {
+    const match = (url || '').match(
+      /(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([\w-]+)/
+    );
+    if (!match) return null;
+    const id = match[1];
+    return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&modestbranding=1&rel=0`;
+  }
+
+  function renderAPOD(apod) {
+    const oculus = document.getElementById('oculus');
+    oculus.classList.remove('is-loading', 'show-video', 'show-video-frame', 'show-fallback');
+
+    if (!apod) {
+      oculus.classList.add('show-fallback');
+      return;
+    }
+
+    const imgEl = document.getElementById('oculus-image');
+    const videoEl = document.getElementById('oculus-video');
+    const frameEl = document.getElementById('oculus-video-frame');
+
+    videoEl.pause();
+    videoEl.removeAttribute('src');
+    videoEl.load();
+    frameEl.src = '';
+
+    if (apod.mediaType === 'image') {
+      imgEl.src = apod.imageUrl;
+      imgEl.alt = apod.title;
+    } else if (apod.mediaType === 'video') {
+      const embedUrl = youtubeEmbedUrl(apod.videoUrl);
+      if (embedUrl) {
+        frameEl.src = embedUrl;
+        frameEl.title = apod.title;
+        oculus.classList.add('show-video-frame');
+      } else {
+        videoEl.src = apod.videoUrl;
+        videoEl.play().catch(() => {});
+        oculus.classList.add('show-video');
+      }
+    } else {
+      oculus.classList.add('show-fallback');
+    }
+  }
+
+  function renderAPODError() {
+    const oculus = document.getElementById('oculus');
+    oculus.classList.remove('is-loading');
+    oculus.classList.add('show-fallback');
+  }
+
+  // ---------- EPIC (Earth Polychromatic Imaging Camera) ----------
+  //
+  // EPIC's own API host, not proxied through api.nasa.gov — no key needed.
+
+  const EPIC_URL = 'https://epic.gsfc.nasa.gov/api/natural';
+
+  async function loadEPIC() {
+    try {
+      const res = await fetch(EPIC_URL);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) throw new Error('No EPIC images available');
+      renderEPIC(data[data.length - 1]);
+    } catch (err) {
+      console.error('EPIC fetch failed:', err);
+    }
+  }
+
+  function renderEPIC(entry) {
+    const [datePart] = entry.date.split(' ');
+    const [year, month, day] = datePart.split('-');
+    const img = document.getElementById('epic-image');
+    img.src = `https://epic.gsfc.nasa.gov/archive/natural/${year}/${month}/${day}/jpg/${entry.image}.jpg`;
+    img.alt = `Earth, imaged by NASA's EPIC camera on ${datePart}`;
+  }
+
+  // ---------- Solar wind (NOAA SWPC — near-real-time, no key required) ----------
+
+  async function loadSolarWind() {
+    try {
+      const [magRes, speedRes] = await Promise.all([
+        fetch('https://services.swpc.noaa.gov/products/summary/solar-wind-mag-field.json'),
+        fetch('https://services.swpc.noaa.gov/products/summary/solar-wind-speed.json'),
+      ]);
+      if (!magRes.ok || !speedRes.ok) throw new Error('HTTP ' + magRes.status + '/' + speedRes.status);
+      const [mag] = await magRes.json();
+      const [speed] = await speedRes.json();
+      renderSolarWind(mag, speed);
+    } catch (err) {
+      document.getElementById('wx-card').classList.add('has-error');
+      document.getElementById('wind-speed').textContent = '—';
+      document.getElementById('wind-bz').textContent = '—';
+      console.error('Solar wind fetch failed:', err);
+    }
+  }
+
+  function renderSolarWind(mag, speed) {
+    const card = document.getElementById('wx-card');
+    card.classList.remove('has-error');
+
+    const mph = Math.round(speed.proton_speed * KM_S_TO_MPH);
+    document.getElementById('wind-speed').textContent = mph.toLocaleString('en-US');
+
+    const bz = mag.bz_gsm;
+    document.getElementById('wind-bz').textContent = (bz > 0 ? '+' : '') + bz;
+    const isSouth = bz < -2; // southward field: more likely to spark aurora
+    card.classList.toggle('is-south', isSouth);
+    document.getElementById('aurora-badge').hidden = !isSouth;
+  }
+
+  // ---------- Cosmic Meteorology summary (from /api/nasa-data) ----------
+
+  function renderSpaceWeatherSummary(spaceWeather) {
+    const card = document.getElementById('wx-card');
+    card.classList.remove('has-error');
+
+    let text;
+    if (spaceWeather.kpIndex >= 5) {
+      text = `Geomagnetic storm conditions — Kp ${spaceWeather.kpIndex}`;
+    } else if (spaceWeather.flareCount > 0) {
+      text = `${spaceWeather.flareCount} solar flare${spaceWeather.flareCount === 1 ? '' : 's'} this week`;
+    } else if (spaceWeather.cmeCount > 0) {
+      text = `${spaceWeather.cmeCount} coronal mass ejection${spaceWeather.cmeCount === 1 ? '' : 's'} this week`;
+    } else {
+      text = 'All quiet — no notable activity this week.';
+    }
+    document.getElementById('wx-alert').textContent = text;
+  }
+
+  // ---------- Mars weather (InSight lander, via /api/nasa-data) ----------
+  //
+  // InSight's mission ended in December 2022, and this feed appears frozen
+  // even earlier than that. There's no live Mars weather to show, so this
+  // renders InSight's last available reading and says plainly when it's
+  // from, rather than presenting stale data as current.
+
+  function renderMars(mars) {
+    if (!mars) return;
+    const recordedDate = mars.recordedDate
+      ? new Date(mars.recordedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+      : 'an unknown date';
+
+    document.getElementById('mars-sol').textContent = mars.sol;
+    document.getElementById('mars-temp').textContent = mars.tempF;
+    document.getElementById('mars-wind').textContent = mars.windMph;
+    document.getElementById('mars-pressure').textContent = mars.pressurePa;
+    document.getElementById('mars-alert').textContent =
+      `Recorded ${recordedDate} — InSight's mission ended in 2022; no live Mars weather since.`;
+  }
+
+  // ---------- unified NASA data (APOD, space weather, NEO, Mars) ----------
 
   const FALLBACK_DATA = {
     timestamp: null,
-    sourceStatus: { neo: 'unavailable', flares: 'unavailable', cmes: 'unavailable', storms: 'unavailable' },
+    sourceStatus: {
+      neo: 'unavailable', flares: 'unavailable', cmes: 'unavailable',
+      storms: 'unavailable', apod: 'unavailable', mars: 'unavailable',
+    },
     spaceWeather: { flareCount: 0, flareIntensity: 0, cmeCount: 0, cmeSpeed: 0, geomagneticIntensity: 0, kpIndex: 0 },
     asteroids: [],
+    apod: null,
+    mars: null,
   };
 
   let latestData = FALLBACK_DATA;
 
-  // Smoothed, currently-displayed values — these ease toward latestData's
-  // numbers rather than jumping, so a data refresh never looks abrupt.
+  // Smoothed, currently-displayed values feeding the artwork — these ease
+  // toward latestData's numbers rather than jumping, so a data refresh
+  // never looks abrupt.
   const shown = { flareIntensity: 0, cmeSpeed: 0, geomagneticIntensity: 0 };
 
   function isAnyLive(sourceStatus) {
@@ -106,16 +272,23 @@
       const data = await res.json();
       latestData = data;
       rebuildOrbits(data.asteroids || []);
+      renderAPOD(data.apod);
+      renderSpaceWeatherSummary(data.spaceWeather);
+      renderMars(data.mars);
     } catch (err) {
       // Keep whatever we last had (or the fallback) and just reflect the
-      // degraded state in the status dot — the artwork keeps running.
+      // degraded state in the status dot — the sign keeps running. Only
+      // fall back the APOD image if we never had one to begin with.
       latestData = { ...latestData, sourceStatus: FALLBACK_DATA.sourceStatus };
+      if (document.getElementById('oculus').classList.contains('is-loading')) {
+        renderAPODError();
+      }
       console.error('nasa-data fetch failed:', err);
     }
     updateStatus();
   }
 
-  // ---------- scene state ----------
+  // ---------- Algorithm Art: scene state ----------
 
   let stars = [];
   let orbits = [];
@@ -230,7 +403,7 @@
     rebuildParticles();
   }
 
-  // ---------- drawing ----------
+  // ---------- Algorithm Art: drawing ----------
 
   function drawBackdrop() {
     ctx.fillStyle = '#0a0b0e';
@@ -414,7 +587,7 @@
     }
   }
 
-  // ---------- animation loop ----------
+  // ---------- Algorithm Art: animation loop ----------
 
   let lastTime = performance.now();
   let clock = 0;
@@ -447,6 +620,45 @@
     requestAnimationFrame(frame);
   }
 
+  // ---------- idle / wake cycle ----------
+  //
+  // Simulates the shelter's motion sensor with mouse/touch/keyboard activity —
+  // swap the listeners below for a real PIR/ultrasonic sensor signal on a
+  // physical install. Each time the sign wakes up from idle (not on every
+  // twitch while already awake), it cycles to the next screen: APOD photo →
+  // Cosmic Meteorology → EPIC Earth image → Mars weather → Algorithm Art →
+  // back to APOD.
+
+  const IDLE_TIMEOUT_MS = 8000;
+  const MODE_ORDER = ['apod', 'wx', 'epic', 'mars', 'art'];
+  let idleTimer;
+  let mode = 'apod';
+
+  function wake() {
+    const wasIdle = document.body.classList.contains('is-idle');
+    document.body.classList.remove('is-idle');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(goIdle, IDLE_TIMEOUT_MS);
+    if (wasIdle) toggleMode();
+  }
+
+  function goIdle() {
+    document.body.classList.add('is-idle');
+  }
+
+  function toggleMode() {
+    mode = MODE_ORDER[(MODE_ORDER.indexOf(mode) + 1) % MODE_ORDER.length];
+    document.body.classList.remove('mode-wx', 'mode-epic', 'mode-mars', 'mode-art');
+    if (mode !== 'apod') document.body.classList.add('mode-' + mode);
+  }
+
+  function startIdleCycle() {
+    ['mousemove', 'touchstart', 'touchmove', 'keydown', 'click', 'scroll'].forEach((evt) => {
+      window.addEventListener(evt, wake, { passive: true });
+    });
+    idleTimer = setTimeout(goIdle, IDLE_TIMEOUT_MS);
+  }
+
   // ---------- boot ----------
 
   window.addEventListener('resize', resize);
@@ -454,8 +666,13 @@
   ctx.fillStyle = 'rgb(10, 11, 14)';
   ctx.fillRect(0, 0, width, height);
 
+  loadEPIC();
+  loadSolarWind();
   fetchData();
+  setInterval(loadEPIC, REFRESH_MS);
+  setInterval(loadSolarWind, WIND_REFRESH_MS);
   setInterval(fetchData, REFRESH_MS);
+  startIdleCycle();
 
   requestAnimationFrame(frame);
 })();
