@@ -67,17 +67,6 @@
     return a + (b - a) * t;
   }
 
-  // A soft, organic angle field built from layered sine waves — gives
-  // ribbons and particle streams a curling, wind-like motion without
-  // needing an external noise library.
-  function flowAngle(x, y, t, turbulence) {
-    const scale = 0.0016 + turbulence * 0.0026;
-    return (
-      Math.sin(x * scale + t) * Math.cos(y * scale * 1.3 - t * 0.7) * Math.PI +
-      Math.sin((x + y) * scale * 0.5 - t * 0.35) * 0.6
-    );
-  }
-
   // ---------- APOD (image/video backdrop) ----------
 
   function youtubeEmbedUrl(url) {
@@ -229,7 +218,7 @@
   // Smoothed, currently-displayed values feeding the artwork — these ease
   // toward latestData's numbers rather than jumping, so a data refresh
   // never looks abrupt.
-  const shown = { flareIntensity: 0, cmeSpeed: 0, geomagneticIntensity: 0 };
+  const shown = { flareIntensity: 0, geomagneticIntensity: 0 };
 
   function isAnyLive(sourceStatus) {
     return Object.values(sourceStatus).some((s) => s === 'live');
@@ -275,15 +264,12 @@
 
   let stars = [];
   let orbits = [];
-  let ribbons = [];
   let fineParticles = [];
 
   // Verified against the --ink background (rgb(10,11,14)): all of these
   // clear 7.5:1, well past the 3:1 WCAG non-text contrast minimum.
   const palette = {
     core: [99, 179, 255],
-    ribbonBlue: [77, 163, 255],
-    ribbonTeal: [45, 212, 191],
     amber: [251, 191, 36],
     star: [250, 250, 255],
   };
@@ -344,33 +330,24 @@
     });
   }
 
-  function makeRibbon() {
-    return {
-      points: [{ x: Math.random() * width, y: Math.random() * height }],
-      maxPoints: 90 + Math.floor(Math.random() * 50),
-      teal: Math.random() < 0.5,
-    };
-  }
-
   function makeFineParticle() {
-    // A shooting star: a fixed diagonal heading, not the curling flow field
-    // the ribbons use — a brief straight streak with a bright head and a
-    // fading tail, entering from an edge.
+    // A shooting star: a fixed diagonal heading and a brief straight streak
+    // with a bright head and a fading tail, entering from an edge. Its size
+    // is set by geomagnetic activity at draw time (see drawFineParticle);
+    // sizeFactor is just per-particle organic variation around that.
     const angle = Math.PI * 0.15 + (Math.random() - 0.5) * 0.4;
     const fromLeft = Math.random() < 0.5;
     return {
       x: fromLeft ? -20 - Math.random() * width * 0.3 : Math.random() * width,
       y: fromLeft ? Math.random() * height * 0.6 : -20 - Math.random() * height * 0.3,
       angle,
-      length: 16 + Math.random() * 18,
+      sizeFactor: 0.75 + Math.random() * 0.5,
       life: 0,
       maxLife: 45 + Math.random() * 35,
     };
   }
 
   function rebuildParticles() {
-    ribbons = [];
-    for (let i = 0; i < 6; i++) ribbons.push(makeRibbon());
     fineParticles = [];
   }
 
@@ -479,37 +456,10 @@
     }
   }
 
-  // Ribbons and fine particle streams keep an explicit short history of
-  // recent positions and draw it as a fading stroked line — this reads as a
-  // clean, controlled "flow" rather than relying on the canvas itself to
-  // accumulate trails, which is difficult to keep both flowing and legible.
-
-  function stepTrail(p, t, speed, turbulence) {
-    const head = p.points[p.points.length - 1];
-    const angle = flowAngle(head.x, head.y, t, turbulence);
-    const next = { x: head.x + Math.cos(angle) * speed, y: head.y + Math.sin(angle) * speed };
-    p.points.push(next);
-    if (p.points.length > p.maxPoints) p.points.shift();
-    return next.x < -60 || next.x > width + 60 || next.y < -60 || next.y > height + 60;
-  }
-
-  function drawRibbon(r, elevated) {
-    const color = elevated
-      ? mix(palette.ribbonBlue, palette.amber, 0.18)
-      : r.teal ? palette.ribbonTeal : palette.ribbonBlue;
-    const n = r.points.length;
-    for (let i = 1; i < n; i++) {
-      const a = r.points[i - 1];
-      const b = r.points[i];
-      const f = i / n;
-      ctx.beginPath();
-      ctx.strokeStyle = rgba(color, f * f * 0.32);
-      ctx.lineWidth = 1 + f * 1.8;
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-    }
-  }
+  // Shooting stars are a single fading tail segment, not a growing history
+  // of points — cheap to draw, and their size/speed are recomputed live
+  // from geomagnetic activity every frame rather than fixed at spawn, so
+  // they visibly react as the Kp index eases toward a new value.
 
   function stepFineParticle(p, speed) {
     p.x += Math.cos(p.angle) * speed;
@@ -520,24 +470,25 @@
     );
   }
 
-  function drawFineParticle(p, elevated) {
+  function drawFineParticle(p, elevated, geo) {
     const lifeFrac = p.life / p.maxLife;
     const fadeIn = Math.min(lifeFrac / 0.12, 1);
     const fadeOut = 1 - Math.max((lifeFrac - 0.75) / 0.25, 0);
     const alpha = Math.min(fadeIn, fadeOut);
     if (alpha <= 0) return;
 
+    const length = mapRange(geo, 0, 1, 14, 46) * p.sizeFactor;
     const dx = Math.cos(p.angle);
     const dy = Math.sin(p.angle);
-    const tailX = p.x - dx * p.length;
-    const tailY = p.y - dy * p.length;
+    const tailX = p.x - dx * length;
+    const tailY = p.y - dy * length;
     const color = elevated ? mix(palette.star, palette.amber, 0.3) : palette.star;
 
     const gradient = ctx.createLinearGradient(tailX, tailY, p.x, p.y);
     gradient.addColorStop(0, rgba(color, 0));
     gradient.addColorStop(1, rgba(color, alpha * 0.75));
     ctx.strokeStyle = gradient;
-    ctx.lineWidth = 1.6;
+    ctx.lineWidth = mapRange(geo, 0, 1, 1.1, 2.8);
     ctx.beginPath();
     ctx.moveTo(tailX, tailY);
     ctx.lineTo(p.x, p.y);
@@ -545,20 +496,13 @@
 
     ctx.beginPath();
     ctx.fillStyle = rgba(color, alpha);
-    ctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, mapRange(geo, 0, 1, 1.0, 2.3), 0, Math.PI * 2);
     ctx.fill();
   }
 
-  function drawParticles(t, elevated) {
-    const speedScale = mapRange(shown.cmeSpeed, 0, 2500, 0.4, 1.7);
-    const turbulence = shown.geomagneticIntensity;
-
-    for (let i = ribbons.length - 1; i >= 0; i--) {
-      const r = ribbons[i];
-      const dead = stepTrail(r, t, 1.9 * speedScale, turbulence);
-      drawRibbon(r, elevated);
-      if (dead) ribbons[i] = makeRibbon();
-    }
+  function drawParticles(elevated) {
+    const geo = shown.geomagneticIntensity;
+    const speed = mapRange(geo, 0, 1, 0.6, 2.8);
 
     const targetFine = Math.round(clamp(shown.eventDensity || 0, 0, 16));
     while (fineParticles.length < targetFine) fineParticles.push(makeFineParticle());
@@ -566,8 +510,8 @@
 
     for (let i = fineParticles.length - 1; i >= 0; i--) {
       const p = fineParticles[i];
-      const dead = stepFineParticle(p, 2.4 * speedScale);
-      drawFineParticle(p, elevated);
+      const dead = stepFineParticle(p, speed);
+      drawFineParticle(p, elevated, geo);
       if (dead) fineParticles[i] = makeFineParticle();
     }
   }
@@ -584,7 +528,6 @@
     clock += dt * (reduceMotion ? 0.002 : 0.006);
 
     shown.flareIntensity = lerp(shown.flareIntensity, latestData.spaceWeather.flareIntensity, 0.01);
-    shown.cmeSpeed = lerp(shown.cmeSpeed, latestData.spaceWeather.cmeSpeed, 0.01);
     shown.geomagneticIntensity = lerp(shown.geomagneticIntensity, latestData.spaceWeather.geomagneticIntensity, 0.01);
     const eventDensityTarget =
       latestData.spaceWeather.flareCount + latestData.spaceWeather.cmeCount + (latestData.spaceWeather.kpIndex > 0 ? 6 : 0);
@@ -597,7 +540,7 @@
 
     drawBackdrop();
     drawStars(clock * 40);
-    drawParticles(clock * 60, elevated);
+    drawParticles(elevated);
     drawCore(clock * 40, center, elevated);
     drawOrbits(center, elevated);
     drawBodies(reduceMotion ? dt * 0.15 : dt, center, elevated);

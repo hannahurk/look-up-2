@@ -26,9 +26,8 @@ Each time the sign wakes from idle (not on every twitch while already awake), it
 ## How the data reads as motion (Algorithm Art)
 
 - **Solar-flare intensity** (peak flare class × magnitude in the window) sets the atmospheric core's brightness and radius.
-- **CME speed** (average, km/s) sets particle velocity and trail length.
-- **Geomagnetic intensity** (max Kp / 9) sets turbulence in the flow field the ribbons follow.
-- **Number of space-weather events** (flares + CMEs, plus a bump for any storm) sets particle density.
+- **Geomagnetic intensity** (max Kp / 9) sets the shooting stars' size (tail length, stroke width, head size) and speed — calm conditions read as small, slow streaks; storm conditions read as long, fast, thick ones.
+- **Number of space-weather events** (flares + CMEs, plus a bump for any storm) sets shooting-star density.
 - **Each tracked asteroid** becomes one orbiting body.
   - Diameter → body size
   - Velocity → orbital speed
