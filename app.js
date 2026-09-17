@@ -265,7 +265,11 @@
       : 'Live data unavailable — showing a quiet fallback state.';
   }
 
+  let fetchInFlight = false;
+
   async function fetchData() {
+    if (fetchInFlight) return; // guards against overlapping calls racing each other
+    fetchInFlight = true;
     try {
       const res = await fetch('/api/nasa-data');
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -284,6 +288,8 @@
         renderAPODError();
       }
       console.error('nasa-data fetch failed:', err);
+    } finally {
+      fetchInFlight = false;
     }
     updateStatus();
   }
