@@ -1,6 +1,6 @@
 /* Space, Translated — a ceiling sign cycling through NASA's Astronomy
-   Picture of the Day, space weather, a live Earth image, Mars weather, and
-   a generative reading of the same live data as a slow installation piece. */
+   Picture of the Day, space weather, a live Earth image, and a generative
+   reading of the same live data as a slow installation piece. */
 
 :root {
   --ink: #0a0b0e;
@@ -28,10 +28,9 @@ body {
 }
 
 /* ---- mode switching ----
-   Exactly one of these five full-bleed layers is visible at a time: the
-   APOD photo/video, the weather screen, the EPIC Earth image, the Mars
-   weather screen, or the generative artwork. Each wake-from-idle cycles to
-   the next one (app.js). */
+   Exactly one of these four full-bleed layers is visible at a time: the
+   APOD photo/video, the weather screen, the EPIC Earth image, or the
+   generative artwork. Each wake-from-idle cycles to the next one (app.js). */
 
 .oculus,
 .epic-screen,
@@ -44,10 +43,9 @@ body {
   transition: opacity 1.2s ease, filter 1.2s ease;
 }
 
-body:not(.mode-wx):not(.mode-epic):not(.mode-mars):not(.mode-art) .oculus,
+body:not(.mode-wx):not(.mode-epic):not(.mode-art) .oculus,
 body.mode-wx .stat-screen#wx-screen,
 body.mode-epic .epic-screen,
-body.mode-mars .stat-screen#mars-screen,
 body.mode-art #art {
   opacity: 1;
   pointer-events: auto;
@@ -60,10 +58,9 @@ body.mode-art #art {
    non-APOD mode doesn't let the (still opacity-0.32'd) photo ghost through
    underneath it. */
 
-body.is-idle:not(.mode-wx):not(.mode-epic):not(.mode-mars):not(.mode-art) .oculus,
+body.is-idle:not(.mode-wx):not(.mode-epic):not(.mode-art) .oculus,
 body.is-idle.mode-epic .epic-screen,
 body.is-idle.mode-wx .stat-screen#wx-screen,
-body.is-idle.mode-mars .stat-screen#mars-screen,
 body.is-idle.mode-art #art {
   opacity: 0.32;
   filter: saturate(0.55);
@@ -76,10 +73,9 @@ body.is-idle.mode-art #art {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.is-idle:not(.mode-wx):not(.mode-epic):not(.mode-mars):not(.mode-art) .oculus,
+  body.is-idle:not(.mode-wx):not(.mode-epic):not(.mode-art) .oculus,
   body.is-idle.mode-epic .epic-screen,
   body.is-idle.mode-wx .stat-screen#wx-screen,
-  body.is-idle.mode-mars .stat-screen#mars-screen,
   body.is-idle.mode-art #art {
     animation: none;
   }
@@ -159,8 +155,8 @@ body.is-idle.mode-art #art {
   background: var(--panel);
 }
 
-/* ---- data screens (weather, Mars) ----
-   A dark starfield with big centered stats, shared by both. */
+/* ---- data screen (weather) ----
+   A dark starfield with big centered stats. */
 
 .stat-screen {
   display: flex;
@@ -186,13 +182,6 @@ body.is-idle.mode-art #art {
   color: var(--amber);
   text-transform: uppercase;
   margin-bottom: 16px;
-}
-
-.stat-name {
-  font-weight: 600;
-  font-size: clamp(22px, 3.4vw, 32px);
-  margin: 0 0 28px;
-  color: var(--paper);
 }
 
 .stat-metric {
@@ -237,11 +226,6 @@ body.is-idle.mode-art #art {
 .stat-badge.aurora {
   background: rgba(242, 169, 59, 0.16);
   color: var(--amber);
-}
-
-.stat-badge.hazard {
-  background: rgba(224, 122, 107, 0.16);
-  color: #e07a6b;
 }
 
 .stat-alert {

@@ -1,16 +1,16 @@
 // Space, Translated — a ceiling sign cycling through NASA's Astronomy
-// Picture of the Day, space weather, a live Earth image, Mars weather, and
-// a generative canvas reading of the same live data ("Algorithm Art").
+// Picture of the Day, space weather, a live Earth image, and a generative
+// canvas reading of the same live data ("Algorithm Art").
 //
 // /api/nasa-data (a serverless proxy holding the real NASA key) supplies
-// APOD, space weather, near-Earth objects, and Mars weather. EPIC and NOAA
-// solar wind need no key, so this file fetches those two directly. This
-// file never sees or requests a NASA key itself.
+// APOD, space weather, and near-Earth objects. EPIC and NOAA solar wind
+// need no key, so this file fetches those two directly. This file never
+// sees or requests a NASA key itself.
 
 (function () {
   'use strict';
 
-  const REFRESH_MS = 60 * 60 * 1000; // APOD/EPIC/space-weather/Mars roll over slowly
+  const REFRESH_MS = 60 * 60 * 1000; // APOD/EPIC/space-weather roll over slowly
   const WIND_REFRESH_MS = 60 * 1000; // NOAA solar wind updates about once a minute
   const KM_S_TO_MPH = 2236.94;
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -211,39 +211,17 @@
     document.getElementById('wx-alert').textContent = text;
   }
 
-  // ---------- Mars weather (InSight lander, via /api/nasa-data) ----------
-  //
-  // InSight's mission ended in December 2022, and this feed appears frozen
-  // even earlier than that. There's no live Mars weather to show, so this
-  // renders InSight's last available reading and says plainly when it's
-  // from, rather than presenting stale data as current.
-
-  function renderMars(mars) {
-    if (!mars) return;
-    const recordedDate = mars.recordedDate
-      ? new Date(mars.recordedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-      : 'an unknown date';
-
-    document.getElementById('mars-sol').textContent = mars.sol;
-    document.getElementById('mars-temp').textContent = mars.tempF;
-    document.getElementById('mars-wind').textContent = mars.windMph;
-    document.getElementById('mars-pressure').textContent = mars.pressurePa;
-    document.getElementById('mars-alert').textContent =
-      `Recorded ${recordedDate} — InSight's mission ended in 2022; no live Mars weather since.`;
-  }
-
-  // ---------- unified NASA data (APOD, space weather, NEO, Mars) ----------
+  // ---------- unified NASA data (APOD, space weather, NEO) ----------
 
   const FALLBACK_DATA = {
     timestamp: null,
     sourceStatus: {
       neo: 'unavailable', flares: 'unavailable', cmes: 'unavailable',
-      storms: 'unavailable', apod: 'unavailable', mars: 'unavailable',
+      storms: 'unavailable', apod: 'unavailable',
     },
     spaceWeather: { flareCount: 0, flareIntensity: 0, cmeCount: 0, cmeSpeed: 0, geomagneticIntensity: 0, kpIndex: 0 },
     asteroids: [],
     apod: null,
-    mars: null,
   };
 
   let latestData = FALLBACK_DATA;
@@ -278,7 +256,6 @@
       rebuildOrbits(data.asteroids || []);
       renderAPOD(data.apod);
       renderSpaceWeatherSummary(data.spaceWeather);
-      renderMars(data.mars);
     } catch (err) {
       // Keep whatever we last had (or the fallback) and just reflect the
       // degraded state in the status dot — the sign keeps running. Only
@@ -632,11 +609,10 @@
   // swap the listeners below for a real PIR/ultrasonic sensor signal on a
   // physical install. Each time the sign wakes up from idle (not on every
   // twitch while already awake), it cycles to the next screen: APOD photo →
-  // Cosmic Meteorology → EPIC Earth image → Mars weather → Algorithm Art →
-  // back to APOD.
+  // Cosmic Meteorology → EPIC Earth image → Algorithm Art → back to APOD.
 
   const IDLE_TIMEOUT_MS = 8000;
-  const MODE_ORDER = ['apod', 'wx', 'epic', 'mars', 'art'];
+  const MODE_ORDER = ['apod', 'wx', 'epic', 'art'];
   let idleTimer;
   let mode = 'apod';
 
@@ -654,7 +630,7 @@
 
   function toggleMode() {
     mode = MODE_ORDER[(MODE_ORDER.indexOf(mode) + 1) % MODE_ORDER.length];
-    document.body.classList.remove('mode-wx', 'mode-epic', 'mode-mars', 'mode-art');
+    document.body.classList.remove('mode-wx', 'mode-epic', 'mode-art');
     if (mode !== 'apod') document.body.classList.add('mode-' + mode);
   }
 

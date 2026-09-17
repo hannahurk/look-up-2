@@ -1,15 +1,13 @@
 // Vercel serverless function — the only place the real NASA API key is used.
-// Fetches NeoWs (today), DONKI FLR/CME/GST (trailing ~7 days), today's APOD,
-// and the last available InSight Mars weather reading, normalizing all of it
-// into a small shape the client can render from. Never forwards the key or
-// the raw NASA payloads to the browser.
+// Fetches NeoWs (today), DONKI FLR/CME/GST (trailing ~7 days), and today's
+// APOD, normalizing all of it into a small shape the client can render
+// from. Never forwards the key or the raw NASA payloads to the browser.
 
 const NEO_URL = 'https://api.nasa.gov/neo/rest/v1/feed';
 const FLR_URL = 'https://api.nasa.gov/DONKI/FLR';
 const CME_URL = 'https://api.nasa.gov/DONKI/CME';
 const GST_URL = 'https://api.nasa.gov/DONKI/GST';
 const APOD_URL = 'https://api.nasa.gov/planetary/apod';
-const MARS_URL = 'https://api.nasa.gov/insight_weather/?feedtype=json&ver=1.0';
 
 const FLARE_CLASS_BASE = { A: 1, B: 10, C: 100, M: 1000, X: 10000 };
 
@@ -86,24 +84,6 @@ function normalizeAPOD(data) {
   };
 }
 
-const C_TO_F = (c) => (c * 9) / 5 + 32;
-const MS_TO_MPH = 2.23694;
-
-function normalizeMars(data) {
-  const sols = (data && data.sol_keys) || [];
-  if (sols.length === 0) return null;
-  const sol = sols[sols.length - 1];
-  const reading = data[sol];
-  if (!reading || !reading.AT || !reading.HWS || !reading.PRE) return null;
-  return {
-    sol,
-    tempF: Math.round(C_TO_F(reading.AT.av)),
-    windMph: Math.round(reading.HWS.av * MS_TO_MPH * 10) / 10,
-    pressurePa: Math.round(reading.PRE.av),
-    recordedDate: reading.First_UTC || null,
-  };
-}
-
 function normalizeAsteroids(neoFeed) {
   const byDate = (neoFeed && neoFeed.near_earth_objects) || {};
   const all = Object.values(byDate).flat();
@@ -132,13 +112,12 @@ module.exports = async (req, res) => {
   const today = isoDate(new Date());
   const { startDate, endDate } = dateRange(7);
 
-  const [neoResult, flrResult, cmeResult, gstResult, apodResult, marsResult] = await Promise.allSettled([
+  const [neoResult, flrResult, cmeResult, gstResult, apodResult] = await Promise.allSettled([
     fetchJSON(`${NEO_URL}?start_date=${today}&end_date=${today}`, apiKey),
     fetchJSON(`${FLR_URL}?startDate=${startDate}&endDate=${endDate}`, apiKey),
     fetchJSON(`${CME_URL}?startDate=${startDate}&endDate=${endDate}`, apiKey),
     fetchJSON(`${GST_URL}?startDate=${startDate}&endDate=${endDate}`, apiKey),
     fetchJSON(APOD_URL, apiKey),
-    fetchJSON(MARS_URL, apiKey),
   ]);
 
   const labeled = {
@@ -147,7 +126,6 @@ module.exports = async (req, res) => {
     cmes: cmeResult,
     storms: gstResult,
     apod: apodResult,
-    mars: marsResult,
   };
   for (const [name, result] of Object.entries(labeled)) {
     if (result.status === 'rejected') {
@@ -170,7 +148,6 @@ module.exports = async (req, res) => {
       cmes: cmeResult.status === 'fulfilled' ? 'live' : 'unavailable',
       storms: gstResult.status === 'fulfilled' ? 'live' : 'unavailable',
       apod: apodResult.status === 'fulfilled' ? 'live' : 'unavailable',
-      mars: marsResult.status === 'fulfilled' ? 'live' : 'unavailable',
     },
     spaceWeather: {
       flareCount: flares.length,
@@ -182,7 +159,6 @@ module.exports = async (req, res) => {
     },
     asteroids: neo ? normalizeAsteroids(neo) : [],
     apod: apodResult.status === 'fulfilled' ? normalizeAPOD(apodResult.value) : null,
-    mars: marsResult.status === 'fulfilled' ? normalizeMars(marsResult.value) : null,
   };
 
   res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
