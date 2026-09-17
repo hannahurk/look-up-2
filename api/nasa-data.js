@@ -24,7 +24,10 @@ function dateRange(daysBack) {
 async function fetchJSON(url, apiKey) {
   if (!apiKey) throw new Error('NASA_API_KEY is not configured');
   const res = await fetch(url + (url.includes('?') ? '&' : '?') + `api_key=${apiKey}`);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`HTTP ${res.status}${body ? ' — ' + body.slice(0, 300) : ''}`);
+  }
   return res.json();
 }
 
@@ -104,6 +107,13 @@ module.exports = async (req, res) => {
     fetchJSON(`${CME_URL}?startDate=${startDate}&endDate=${endDate}`, apiKey),
     fetchJSON(`${GST_URL}?startDate=${startDate}&endDate=${endDate}`, apiKey),
   ]);
+
+  const labeled = { neo: neoResult, flares: flrResult, cmes: cmeResult, storms: gstResult };
+  for (const [name, result] of Object.entries(labeled)) {
+    if (result.status === 'rejected') {
+      console.error(`nasa-data: ${name} failed —`, result.reason && result.reason.message);
+    }
+  }
 
   const neo = neoResult.status === 'fulfilled' ? neoResult.value : null;
   const flares = flrResult.status === 'fulfilled' && Array.isArray(flrResult.value) ? flrResult.value : [];
